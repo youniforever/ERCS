@@ -1,0 +1,88 @@
+{% extends "common/default_layout.html" %}
+
+
+{% block content %}
+
+<style type="text/css">
+.alertText {padding-left:20px;}
+</style>
+<script>
+    $(function() {
+        $(".btnDeviceRegist").click(function() {
+            if ( ! validFormCheck() ) {
+                alert("등록에 필요한 정보가 일부 누락됐습니다.");
+                return false;
+            }
+
+            $.ajax({
+                url: "/device/manage/regist_ok",
+                type: "POST",
+                data: $("#frm").serialize(),
+                dataType: "json",
+                success: function(json) {
+                    if ( json.result == 200 )
+                        location.href = "/device/manage";
+                },
+                error: function(responseText) {}
+            });
+        });
+    });
+
+    function validFormCheck() {
+        if ( $("#forDeviceName").val().trim() == "" ) {
+            $("#forDeviceName").focus();
+            return false;
+        }
+
+        if ( $("#forDeviceIp").val().trim() == "" ) {
+            $("#forDeviceIp").focus();
+            return false;
+        }
+
+        if ( $("#forDevicePort").val().trim() == "" ) {
+            $("#forDevicePort").focus();
+            return false;
+        }
+
+        if ( $("#forPinNo").val().trim() == "" ) {
+            $("#forPinNo").focus();
+            return false;
+        }
+
+        return true;
+    }
+</script>
+
+<div class="page-header">
+    <h1>
+        전자제품 등록
+    </h1>
+</div>
+<p>
+    <form role="form" id="frm">
+        <div class="form-group">
+            <label for="forDeviceName">제품별칭</label>
+            <input type="text" class="form-control" id="forDeviceName" name="deviceName" placeholder="우리집 전기장판" />
+        </div>
+        <div class="form-group">
+            <label for="forDeviceIp">단말IP</label>
+            <input type="text" class="form-control" id="forDeviceIp" name="deviceIp" placeholder="123.456.789.123" />
+        </div>
+        <div class="form-group">
+            <label for="forDevicePort">단말PORT</label>
+            <input type="text" class="form-control" id="forDevicePort" name="devicePort" placeholder="8080" />
+        </div>
+        <div class="form-group">
+            <label for="forPinNo">핀번호</label>
+            <select class="form-control" id="forPinNo" name="pinNo">
+                <option value="">선택</option>
+                {% for pinId in [7, 11, 12, 13, 15, 16, 18, 22] %}
+                    <option value="{{ pinId }}">{{ pinId }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm btnDeviceRegist">등록</button>
+    </form>
+</p>
+
+{% endblock content %}

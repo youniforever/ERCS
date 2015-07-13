@@ -1,0 +1,147 @@
+{% extends "common/default_layout.html" %}
+
+
+{% block content %}
+
+<style type="text/css">
+.alertText {padding-left:20px;}
+</style>
+<script>
+    userId = "{{ data['userId'] }}";
+    pinStatus = "off";
+
+    $(document).ready(function() {
+        $(".chkAll").click(function() {
+            if ( $(this).prop("checked") )
+                $(".chkDev").prop("checked", true);
+            else
+                $(".chkDev").prop("checked", false);
+        });
+
+        $(".btnSelDel").click(function() {
+            if ( $(".chkDev:checked").length > 0 ) {
+                $(".chkAll").prop("checked", false);
+
+                $.ajax({
+                    url: "/device/manage/delete",
+                    type: "POST",
+                    data: $("#frm").serialize(),
+                    dataType: "json",
+                    success: function(json) {
+                        if ( json.result == 200 ) {
+                            $.each($(".chkDev:checked"), function(idx, selDev) {
+                                $(selDev).closest("tr").fadeOut(1200, function() {
+                                    $(this).remove();
+                                });
+                            });
+
+                            if ($(".tblDeviceList tbody tr").length == $(".chkDev:checked").length) {
+                                var deviceList = "";
+                                deviceList += "<tr>";
+                                deviceList += "<td colspan='5' align='center'>등록된 제품이 없습니다.</td>";
+                                deviceList += "</tr>";
+                                $(".tblDeviceList tbody").html(deviceList);
+                            }
+                        }
+                    },
+                    error: function(responseText) {}
+                });
+            }
+        });
+
+        getDeviceList();
+    });
+
+    function getDeviceList() {
+        $.ajax({
+            url: "/device/get_device_list",
+            type: "POST",
+            data: {"userId": userId},
+            dataType: "json",
+            success: function(json) {
+                if ( json.result == 200 ) {
+                    var deviceList = "";
+                    if ( json.data.length > 0 ) {
+                        var deviceUid = null;
+                        var deviceName = null;
+                        var deviceIp = null;
+                        var devicePort = null;
+                        var pinId = null;
+                        var pinStatus = null;
+                        
+                        for (var i = 0; i < json.data.length; i++) {
+                            deviceUid = json.data[i][0];
+                            deviceName = json.data[i][4];
+                            deviceIp = json.data[i][2];
+                            devicePort = json.data[i][3];
+                            pinId = json.data[i][5];
+                            pinStatus = json.data[i][6];
+                            
+                            deviceList += "<tr>";
+                            deviceList += "<td><input type='checkbox' class='chkDev' name='deviceUid' value='" + deviceUid + "' /></td>";
+                            deviceList += "<td>" + deviceName + "</td>";
+                            deviceList += "<td>" + deviceIp + ":" + devicePort + "</td>";
+                            deviceList += "<td>" + pinId + "</td>";
+                            deviceList += "<td>" + pinStatus + "</td>";
+                            deviceList += "</tr>";
+
+                            /*
+                            $.ajax({
+                                url: "http://" + deviceIp + ":" + devicePort + "/control/read",
+                                data: {"deviceUid": deviceUid, "pinId": pinId},
+                                dataType: "jsonp",
+                                success: function(json) {
+                                    if ( json.result == 200 ) {
+                                        var deviceUid = json.data.uId;
+                                        var intPinStatus = json.data.pinStatus;
+                                        var pinStatus = ( intPinStatus == 1 ? "on" : "off" );
+                                        $("input[name='deviceUid'][value='" + deviceUid + "']").parents("tr").find("td:last").html(pinStatus)
+                                    }
+                                },
+                                error: function(responseText) {}
+                            });
+                            */
+                        }
+                    }
+                    else {
+                        deviceList += "<tr>";
+                        deviceList += "<td colspan='5' align='center'>등록된 제품이 없습니다.</td>";
+                        deviceList += "</tr>";
+                    }
+
+                    $(".tblDeviceList tbody").html(deviceList);
+                }
+            },
+            error: function(responseText) {}
+        });
+    }
+</script>
+
+<div class="page-header">
+    <h1>
+        전자제품 관리
+    </h1>
+</div>
+<p>
+    <form id="frm">
+        <table class="table table-hover tblDeviceList">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" class="chkAll" /></th>
+                    <th>제품별칭</th>
+                    <th>단말IP:PORT</th>
+                    <th>핀번호</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </form>
+
+    <p>
+        <a href="/device/manage/regist" class="btn btn-primary btn-sm">제품등록</a>
+        <button type="button" class="btn btn-default btn-sm btnSelDel">선택삭제</button>
+    </p>
+</p>
+
+{% endblock content %}

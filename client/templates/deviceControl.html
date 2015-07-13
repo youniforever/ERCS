@@ -1,0 +1,157 @@
+{% extends "common/default_layout.html" %}
+
+
+{% block content %}
+
+<style type="text/css">
+.alertText {padding-left:20px;}
+</style>
+<script>
+    userId = "{{ data['userId'] }}";
+
+    $(document).ready(function() {
+        $("body").on("click", ".raspDevice", function() {
+            var reqInfo = {};
+            var _devIp = $(this).attr("devIp");
+            var _devPort = $(this).attr("devPort");
+            var _pId = $(this).attr("pId");
+            var _switch = $(this).attr("switch");
+
+            reqInfo.url = "http://" + _devIp + ":" + _devPort + "/control";
+            reqInfo.data = {"pId": _pId, "proc": _switch};
+            requestProcessor(this, reqInfo);
+
+            $.ajax({
+                url: "/device/set_pin_status",
+                type: "POST",
+                data: {"pId": _pId, "pinStatus": _switch},
+                dataType: "json",
+                success: function(json) {
+                },
+                error: function(responseText) {}
+            });
+        });
+
+        getDeviceList()
+    });
+
+    function requestProcessor(btnEl, reqInfo) {
+        $.ajax({
+            url: reqInfo.url,
+            data: reqInfo.data,
+            dataType: "jsonp",
+            success: function(json) {
+                if (json.result == 200) {
+                    if (reqInfo.data.proc == "on") {
+                        deviceOn(btnEl);
+                    }
+                    else {
+                        deviceOff(btnEl);
+                    }
+                }
+                else {
+                    alert("처리에 실패했습니다.");
+                }
+            },
+            error: function() {
+                alert("처리에 실패했습니다.");
+            }
+        });
+    }
+
+    function deviceOn(btnEl, hideMsg) {
+        $(btnEl).removeClass("btn-primary");
+        $(btnEl).addClass("btn-default");
+        $(btnEl).attr("switch", "off");
+        $(btnEl).text($(btnEl).attr("devName") + " 끄기");
+
+        if ( ! hideMsg ) {
+            $(btnEl).after("<span class='alertText'>" + $(btnEl).attr("devName") + " 켰습니다.</span>");
+            $(".alertText").fadeOut(1000, function () {
+                $(this).remove();
+            });
+        }
+    }
+
+    function deviceOff(btnEl, hideMsg) {
+        $(btnEl).removeClass("btn-default");
+        $(btnEl).addClass("btn-primary");
+        $(btnEl).attr("switch", "on");
+        $(btnEl).text($(btnEl).attr("devName") + " 켜기");
+
+        if ( ! hideMsg ) {
+            $(btnEl).after("<span class='alertText'>" + $(btnEl).attr("devName") + " 껐습니다.</span>");
+            $(".alertText").fadeOut(1000, function () {
+                $(this).remove();
+            });
+        }
+    }
+
+    function getDeviceList() {
+        $.ajax({
+            url: "/device/get_device_list",
+            type: "POST",
+            data: {"userId": userId},
+            dataType: "json",
+            success: function(json) {
+                if ( json.result == 200 ) {
+                    var deviceList = "";
+
+                    $(".deviceArea").html("");
+
+                    if ( json.data.length > 0 ) {
+                        var deviceUid = null;
+                        var deviceIp = null;
+                        var devicePort = null;
+                        var deviceName = null;
+                        var pinId = null;
+                        var pinStatus = null;
+
+                        for (var i = 0; i < json.data.length; i++) {
+                            deviceUid = json.data[i][0];
+                            deviceIp = json.data[i][2];
+                            devicePort = json.data[i][3];
+                            deviceName = json.data[i][4];
+                            pinId = json.data[i][5];
+                            pinStatus = json.data[i][6];
+
+                            deviceList = "";
+                            deviceList += "<p>";
+                            deviceList += '<button type="button" class="btn btn-primary btn-sm raspDevice" uId="' + deviceUid + '" devIp="' + deviceIp + '" devPort="' + devicePort + '" devName="' + deviceName + '" switch="' + pinStatus + '" pId="' + pinId + '">' + deviceName + ' 켜기</button>';
+                            deviceList += '</p>';
+
+                            $(".deviceArea").append(deviceList);
+
+                            if ( pinStatus == "on" ) {
+                                deviceOn($("button[uid='" + deviceUid + "']"), true);
+                            }
+                            else if ( pinStatus == "off" ) {
+                                deviceOff($("button[uid='" + deviceUid + "']"), true);
+                            }
+                        }
+                    }
+                    else {
+                        deviceList = "";
+                        deviceList += "<p>";
+                        deviceList += "등록된 제품이 없습니다.";
+                        deviceList += "&nbsp;&nbsp;";
+                        deviceList += '<a href="/device/manage/regist" class="btn btn-primary btn-xs">제품등록</a>';
+                        deviceList += "</p>";
+
+                        $(".deviceArea").append(deviceList);
+                    }
+                }
+            },
+            error: function(responseText) {}
+        });
+    }
+</script>
+
+<div class="page-header">
+    <h1>
+        전자제품 제어
+    </h1>
+</div>
+<p class="deviceArea"></p>
+
+{% endblock content %}
